@@ -6,6 +6,7 @@ function App() {
   const [projectId] = useState('demo-project')
   const [filePath] = useState('main.tex')
   const [compileStatus, setCompileStatus] = useState<string | null>(null)
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
   const handleCompile = () => {
     setCompileStatus('Compiling...')
@@ -19,9 +20,12 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <div className="logo">
-          <h1>Fast<span className="tex">T<sub>E</sub>X</span></h1>
-        </div>
+          <div className="logo">
+            <h1>Fast<span className="tex">T<sub>E</sub>X</span></h1>
+          </div>
+          <div className="endpoint">
+            Backend: <code>{apiUrl}</code>
+          </div>
         <nav className="nav">
           <button className="compile-btn" onClick={handleCompile}>
             Compile (Ctrl+S)
