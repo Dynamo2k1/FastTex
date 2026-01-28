@@ -104,20 +104,18 @@ cp .env.example .env.local
 nano .env.local
 ```
 
-**Environment Variables:**
+**Environment Variables (minimum for dev):**
 
 ```env
-# API Configuration
+# API / WebSocket endpoints (match backend gateway)
 VITE_API_URL=http://localhost:8080
-VITE_WS_URL=ws://localhost:8081
+VITE_WS_URL=ws://localhost:8080
 
-# Feature Flags
-VITE_ENABLE_ANALYTICS=false
-VITE_ENABLE_OFFLINE_MODE=true
-
-# Development
-VITE_DEBUG_MODE=true
+# Optional: change Vite dev server port (defaults to 5173)
+# VITE_DEV_PORT=5173
 ```
+
+> The frontend proxies `/api`, `/sync`, and `/compile` to the gateway at `VITE_API_URL` / `VITE_WS_URL`. Ensure the gateway is running (see root README) before starting dev server to avoid `ECONNREFUSED 127.0.0.1:8080` errors in the Vite console.
 
 ### Step 4: Start Development Server
 
@@ -125,7 +123,7 @@ VITE_DEBUG_MODE=true
 npm run dev
 ```
 
-Open http://localhost:3000 in your browser.
+Vite will start on http://localhost:5173 by default (or `VITE_DEV_PORT` if set).
 
 ---
 
