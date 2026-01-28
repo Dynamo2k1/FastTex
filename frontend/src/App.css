@@ -1,0 +1,297 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #1a1a2e;
+}
+
+/* Header */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background-color: #16213e;
+  border-bottom: 1px solid #0f3460;
+}
+
+.logo h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e94560;
+  margin: 0;
+}
+
+.logo .tex {
+  color: #00d9ff;
+}
+
+.logo .tex sub {
+  font-size: 0.6em;
+  vertical-align: -0.2em;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.compile-btn {
+  background-color: #e94560;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.compile-btn:hover {
+  background-color: #d63850;
+  transform: translateY(-1px);
+}
+
+.compile-btn:active {
+  transform: translateY(0);
+}
+
+.compile-status {
+  color: #00d9ff;
+  font-size: 0.875rem;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Main Layout */
+.app-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* File Tree Sidebar */
+.file-tree {
+  width: 220px;
+  background-color: #16213e;
+  border-right: 1px solid #0f3460;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-tree-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #0f3460;
+}
+
+.file-tree-header h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #8892b0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.file-list {
+  list-style: none;
+  padding: 0.5rem 0;
+  overflow-y: auto;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  color: #ccd6f6;
+  font-size: 0.875rem;
+}
+
+.file-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.file-item.active {
+  background-color: rgba(233, 69, 96, 0.15);
+  color: #e94560;
+  font-weight: 500;
+}
+
+.file-icon {
+  margin-right: 0.5rem;
+}
+
+/* Editor Panel */
+.editor-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Preview Panel */
+.preview-panel {
+  width: 400px;
+  background-color: #16213e;
+  border-left: 1px solid #0f3460;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #0f3460;
+}
+
+.preview-header h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #8892b0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.preview-content {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.preview-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #8892b0;
+  text-align: center;
+}
+
+.preview-placeholder p {
+  margin: 0.25rem 0;
+}
+
+.preview-placeholder .hint {
+  font-size: 0.75rem;
+  color: #495670;
+  margin-top: 0.5rem;
+}
+
+/* Footer */
+.app-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #16213e;
+  border-top: 1px solid #0f3460;
+  font-size: 0.75rem;
+  color: #8892b0;
+}
+
+.separator {
+  margin: 0 0.5rem;
+  color: #0f3460;
+}
+
+/* Editor Component Styles */
+.editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.editor-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #0f3460;
+  font-size: 0.75rem;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.connection-status.connected {
+  color: #00d9ff;
+}
+
+.connection-status.disconnected {
+  color: #e94560;
+}
+
+.user-count {
+  color: #8892b0;
+}
+
+.editor {
+  flex: 1;
+  overflow: auto;
+}
+
+/* CodeMirror Overrides */
+.editor .cm-editor {
+  height: 100%;
+  background-color: #1a1a2e;
+}
+
+.editor .cm-gutters {
+  background-color: #16213e;
+  border-right: 1px solid #0f3460;
+  color: #495670;
+}
+
+.editor .cm-activeLineGutter {
+  background-color: rgba(233, 69, 96, 0.1);
+}
+
+.editor .cm-activeLine {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.editor .cm-selectionBackground {
+  background-color: rgba(0, 217, 255, 0.2) !important;
+}
+
+.editor .cm-cursor {
+  border-left-color: #e94560;
+}
+
+.editor .cm-content {
+  color: #ccd6f6;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .preview-panel {
+    width: 300px;
+  }
+}
+
+@media (max-width: 900px) {
+  .preview-panel {
+    display: none;
+  }
+  
+  .file-tree {
+    width: 180px;
+  }
+}
+
+@media (max-width: 600px) {
+  .file-tree {
+    display: none;
+  }
+}
