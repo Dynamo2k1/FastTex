@@ -237,12 +237,12 @@ All iterative processes MUST have bounded iterations:
 - Final output generated from last stable state
 
 #### Rule 3: Resource Quotas
-All user operations MUST be bounded:
-- Maximum compilation time: 10 minutes
-- Maximum memory per job: 512MB
-- Maximum concurrent jobs per user: 3
-- Maximum document size: 10MB
-- Maximum project size: 100MB
+All user operations MUST be bounded, with limits varying by user tier:
+- Maximum compilation time: 5-30 minutes (depending on tier)
+- Maximum memory per job: 256MB-2GB (depending on tier)
+- Maximum concurrent jobs per user: 1-10 (depending on tier)
+- Maximum document size: 5-50MB (depending on tier)
+- Maximum project size: 50MB-1GB (depending on tier)
 
 #### Rule 4: Failure Isolation
 Job failures MUST NOT affect other jobs:
@@ -333,7 +333,7 @@ The following MAY be parallelized:
 ```
 MAX_REFERENCE_PASSES = 5
 MAX_BIBLIOGRAPHY_ITERATIONS = 3
-CONVERGENCE_TIMEOUT = 30 seconds per pass
+MAX_CONVERGENCE_TIME = 150 seconds (2.5 minutes total)
 
 On convergence failure:
 1. Log detailed state of non-converging files

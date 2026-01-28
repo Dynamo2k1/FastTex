@@ -154,13 +154,17 @@ impl CircuitBreaker {
                     .map(|until| until.saturating_duration_since(Instant::now()))
                     .unwrap_or_default();
                 
+                let last_error = record.error_messages.last()
+                    .cloned()
+                    .unwrap_or_else(|| "Unknown error".to_string());
+                
                 CircuitCheckResult::Rejected {
                     retry_after,
                     reason: format!(
                         "Document quarantined after {} consecutive failures. \
-                         Recent errors: {:?}",
+                         Last error: {}",
                         record.failure_count,
-                        record.error_messages.last()
+                        last_error
                     ),
                 }
             }

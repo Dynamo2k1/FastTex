@@ -28,8 +28,8 @@ pub enum QuotaError {
     #[error("Memory quota exceeded: {used}/{limit} bytes")]
     MemoryQuotaExceeded { used: u64, limit: u64 },
     
-    #[error("Rate limit exceeded: retry after {retry_after:?}")]
-    RateLimitExceeded { retry_after: Duration },
+    #[error("Rate limit exceeded: retry after {retry_after_secs} seconds")]
+    RateLimitExceeded { retry_after_secs: u64 },
     
     #[error("Document size exceeded: {size}/{limit} bytes")]
     DocumentSizeExceeded { size: u64, limit: u64 },
@@ -163,7 +163,9 @@ impl ResourceUsage {
                 self.hour_start = Some(now);
             }
             None => {
+                // First time - initialize both
                 self.hour_start = Some(now);
+                self.compute_time_this_hour = Duration::ZERO;
             }
             _ => {}
         }
@@ -251,8 +253,10 @@ impl QuotaManager {
         // Check rate limit
         if state.usage.request_timestamps.len() >= state.limits.requests_per_minute as usize {
             let oldest = state.usage.request_timestamps.first().unwrap();
-            let retry_after = Duration::from_secs(60) - oldest.elapsed();
-            return Err(QuotaError::RateLimitExceeded { retry_after });
+            let retry_after = Duration::from_secs(60).saturating_sub(oldest.elapsed());
+            return Err(QuotaError::RateLimitExceeded { 
+                retry_after_secs: retry_after.as_secs() 
+            });
         }
         
         // Check document size

@@ -16,6 +16,13 @@ use uuid::Uuid;
 use crate::convergence::{ConvergenceResult, MAX_CONVERGENCE_PASSES};
 use crate::dependency_graph::{DependencyGraph, NodeId, NodeType};
 
+/// Estimated time per compilation node in seconds
+/// This is a conservative estimate used for planning
+const ESTIMATED_SECONDS_PER_NODE: u64 = 10;
+
+/// Overhead in seconds for parallel batch coordination
+const PARALLEL_BATCH_OVERHEAD_SECS: u64 = 2;
+
 /// Compilation mode selection
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CompilationMode {
@@ -316,14 +323,14 @@ impl CompilationPlanner {
         let mut total = Duration::ZERO;
         
         for phase in phases {
-            // Base time per node
-            let time_per_node = Duration::from_secs(10);
+            // Base time per node (conservative estimate)
+            let time_per_node = Duration::from_secs(ESTIMATED_SECONDS_PER_NODE);
             
             let phase_time = if phase.parallel && strategy.is_parallel() {
                 // Parallel: max(times) + overhead
                 let parallel_batches = (phase.nodes.len() + strategy.max_parallel_workers - 1) 
                     / strategy.max_parallel_workers;
-                time_per_node * parallel_batches as u32 + Duration::from_secs(2)
+                time_per_node * parallel_batches as u32 + Duration::from_secs(PARALLEL_BATCH_OVERHEAD_SECS)
             } else {
                 // Sequential: sum(times)
                 time_per_node * phase.nodes.len() as u32

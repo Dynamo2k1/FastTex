@@ -23,6 +23,11 @@ use crate::scheduler::JobId;
 /// Default aging rate (priority increase per second waiting)
 pub const DEFAULT_AGING_RATE: f32 = 0.1;
 
+/// Exponential moving average alpha for wait time calculation
+/// Lower values (closer to 0) give more weight to historical data
+/// Higher values (closer to 1) give more weight to recent observations
+const WAIT_TIME_EMA_ALPHA: f64 = 0.1;
+
 /// Maximum worker percentage any single user can consume
 pub const MAX_WORKER_PERCENTAGE: f32 = 0.30;
 
@@ -327,10 +332,9 @@ impl FairScheduler {
                 user_stats.total_compute_time += duration;
                 
                 // Update average wait time (exponential moving average)
-                let alpha = 0.1;
                 let old_avg = user_stats.average_wait_time.as_secs_f64();
                 let new_wait = wait_time.as_secs_f64();
-                let new_avg = old_avg * (1.0 - alpha) + new_wait * alpha;
+                let new_avg = old_avg * (1.0 - WAIT_TIME_EMA_ALPHA) + new_wait * WAIT_TIME_EMA_ALPHA;
                 user_stats.average_wait_time = Duration::from_secs_f64(new_avg);
             }
         }
