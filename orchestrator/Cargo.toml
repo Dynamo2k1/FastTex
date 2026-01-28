@@ -5,6 +5,14 @@ edition = "2021"
 description = "FastTeX Build Orchestrator - MPI-style distributed LaTeX compilation"
 license = "MIT"
 
+[[bin]]
+name = "fasttex-orchestrator"
+path = "src/main.rs"
+
+[lib]
+name = "fasttex_orchestrator"
+path = "src/lib.rs"
+
 [dependencies]
 tokio = { version = "1.35", features = ["full"] }
 axum = "0.7"
