@@ -1,0 +1,31 @@
+[package]
+name = "fasttex-orchestrator"
+version = "0.1.0"
+edition = "2021"
+description = "FastTeX Build Orchestrator - MPI-style distributed LaTeX compilation"
+license = "MIT"
+
+[dependencies]
+tokio = { version = "1.35", features = ["full"] }
+axum = "0.7"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.6", features = ["v4", "serde"] }
+thiserror = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+sha2 = "0.10"
+hex = "0.4"
+regex = "1.10"
+petgraph = "0.6"
+dashmap = "5.5"
+async-trait = "0.1"
+futures = "0.3"
+tonic = "0.10"
+prost = "0.12"
+redis = { version = "0.24", features = ["tokio-comp"] }
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.9"

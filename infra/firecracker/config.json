@@ -1,0 +1,73 @@
+{
+  "$schema": "https://raw.githubusercontent.com/firecracker-microvm/firecracker/main/src/vmm/resources/api_server_schema.json",
+  "boot-source": {
+    "kernel_image_path": "/srv/fasttex/vmlinux",
+    "boot_args": "console=ttyS0 reboot=k panic=1 pci=off init=/sbin/init",
+    "initrd_path": null
+  },
+  "drives": [
+    {
+      "drive_id": "rootfs",
+      "path_on_host": "/srv/fasttex/rootfs.ext4",
+      "is_root_device": true,
+      "partuuid": null,
+      "is_read_only": true,
+      "cache_type": "Unsafe",
+      "rate_limiter": null,
+      "io_engine": "Sync"
+    },
+    {
+      "drive_id": "work",
+      "path_on_host": "/tmp/fasttex/{job_id}/work.ext4",
+      "is_root_device": false,
+      "partuuid": null,
+      "is_read_only": false,
+      "cache_type": "Unsafe",
+      "rate_limiter": {
+        "bandwidth": {
+          "size": 104857600,
+          "one_time_burst": 52428800,
+          "refill_time": 1000
+        },
+        "ops": {
+          "size": 10000,
+          "one_time_burst": 5000,
+          "refill_time": 1000
+        }
+      },
+      "io_engine": "Sync"
+    }
+  ],
+  "machine-config": {
+    "vcpu_count": 1,
+    "mem_size_mib": 512,
+    "smt": false,
+    "track_dirty_pages": false,
+    "huge_pages": "None"
+  },
+  "cpu-config": null,
+  "balloon": null,
+  "network-interfaces": [],
+  "vsock": null,
+  "logger": {
+    "log_path": "/tmp/fasttex/{job_id}/firecracker.log",
+    "level": "Warning",
+    "show_level": true,
+    "show_log_origin": true,
+    "module": null
+  },
+  "metrics": {
+    "metrics_path": "/tmp/fasttex/{job_id}/metrics.fifo"
+  },
+  "mmds-config": null,
+  "entropy": {
+    "rate_limiter": {
+      "bandwidth": {
+        "size": 1000,
+        "one_time_burst": 0,
+        "refill_time": 1000
+      },
+      "ops": null
+    }
+  }
+}

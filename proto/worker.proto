@@ -1,0 +1,179 @@
+syntax = "proto3";
+
+package fasttex.worker.v1;
+
+// Worker Service
+// Runs inside Firecracker microVMs to execute compilation tasks
+service WorkerService {
+    // Execute a compilation task
+    rpc Compile(WorkerCompileRequest) returns (WorkerCompileResponse);
+    
+    // Generate a format file from preamble
+    rpc GenerateFormat(GenerateFormatRequest) returns (GenerateFormatResponse);
+    
+    // Health check
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// Worker compile request
+message WorkerCompileRequest {
+    // Job identifier
+    string job_id = 1;
+    
+    // Source files (path -> content)
+    map<string, bytes> source_files = 2;
+    
+    // Precompiled format file (optional)
+    bytes fmt_file = 3;
+    
+    // Auxiliary files from previous runs
+    map<string, bytes> aux_files = 4;
+    
+    // Main file to compile
+    string compile_target = 5;
+    
+    // Timeout in milliseconds
+    int64 timeout_ms = 6;
+    
+    // MPI-style rank (0 = master)
+    int32 rank = 7;
+    
+    // Compile options
+    WorkerCompileOptions options = 8;
+}
+
+message WorkerCompileOptions {
+    // Generate synctex data
+    bool synctex = 1;
+    
+    // Maximum memory (bytes)
+    int64 max_memory = 2;
+    
+    // Enable shell escape (dangerous, usually disabled)
+    bool shell_escape = 3;
+}
+
+// Worker compile response
+message WorkerCompileResponse {
+    // Job identifier
+    string job_id = 1;
+    
+    // Whether compilation succeeded
+    bool success = 2;
+    
+    // Status code
+    WorkerStatus status = 3;
+    
+    // PDF output (if successful)
+    bytes pdf_output = 4;
+    
+    // Updated auxiliary files
+    map<string, bytes> aux_outputs = 5;
+    
+    // Compilation log
+    string log = 6;
+    
+    // Diagnostics
+    repeated WorkerDiagnostic diagnostics = 7;
+    
+    // Execution statistics
+    WorkerStats stats = 8;
+}
+
+enum WorkerStatus {
+    WORKER_STATUS_UNSPECIFIED = 0;
+    WORKER_STATUS_SUCCESS = 1;
+    WORKER_STATUS_SUCCESS_WITH_WARNINGS = 2;
+    WORKER_STATUS_FAILED = 3;
+    WORKER_STATUS_TIMEOUT = 4;
+    WORKER_STATUS_RESOURCE_EXCEEDED = 5;
+}
+
+message WorkerDiagnostic {
+    WorkerDiagnosticSeverity severity = 1;
+    string message = 2;
+    string file = 3;
+    int32 line = 4;
+    int32 column = 5;
+}
+
+enum WorkerDiagnosticSeverity {
+    WORKER_DIAGNOSTIC_SEVERITY_UNSPECIFIED = 0;
+    WORKER_DIAGNOSTIC_SEVERITY_ERROR = 1;
+    WORKER_DIAGNOSTIC_SEVERITY_WARNING = 2;
+    WORKER_DIAGNOSTIC_SEVERITY_INFO = 3;
+}
+
+message WorkerStats {
+    // Memory used (bytes)
+    int64 memory_used = 1;
+    
+    // CPU time (milliseconds)
+    int64 cpu_time_ms = 2;
+    
+    // Number of TeX passes
+    int32 tex_passes = 3;
+    
+    // Whether format file was used
+    bool used_format = 4;
+    
+    // Total duration (milliseconds)
+    int64 duration_ms = 5;
+}
+
+// Generate format request
+message GenerateFormatRequest {
+    // Job identifier
+    string job_id = 1;
+    
+    // Preamble content
+    string preamble_content = 2;
+    
+    // Timeout in milliseconds
+    int64 timeout_ms = 3;
+}
+
+// Generate format response
+message GenerateFormatResponse {
+    // Job identifier
+    string job_id = 1;
+    
+    // Whether generation succeeded
+    bool success = 2;
+    
+    // Generated format file
+    bytes fmt_output = 3;
+    
+    // Generation log
+    string log = 4;
+    
+    // Hash of the format file
+    string fmt_hash = 5;
+    
+    // Duration (milliseconds)
+    int64 duration_ms = 6;
+}
+
+// Health check request
+message HealthCheckRequest {}
+
+// Health check response
+message HealthCheckResponse {
+    bool healthy = 1;
+    string version = 2;
+    WorkerCapabilities capabilities = 3;
+}
+
+message WorkerCapabilities {
+    // Available memory (bytes)
+    int64 available_memory = 1;
+    
+    // Number of CPUs
+    int32 cpu_count = 2;
+    
+    // Tectonic version
+    string tectonic_version = 3;
+    
+    // Supported features
+    repeated string features = 4;
+}
