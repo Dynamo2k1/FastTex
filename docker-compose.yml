@@ -1,0 +1,184 @@
+# FastTeX Production Docker Compose Configuration
+# This configuration sets up the full FastTeX stack for production deployment.
+#
+# Usage:
+#   docker-compose up -d
+#
+# Services:
+#   - postgres: User/Project database
+#   - redis: Cache/PubSub for sessions and Yjs sync
+#   - gateway: WebSocket gateway and REST API
+#   - orchestrator: Build orchestration service
+#   - worker: LaTeX compilation workers (3 replicas)
+#   - frontend: React frontend (development only)
+
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  # Stores users, projects, and compilation history
+  postgres:
+    image: postgres:15-alpine
+    container_name: fasttex-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fasttex
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fasttex_secret}
+      POSTGRES_DB: fasttex
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    # Note: Ports are commented out for production security.
+    # Uncomment for local development access.
+    # ports:
+    #   - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fasttex -d fasttex"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fasttex-network
+
+  # Redis Cache
+  # Used for session storage, Yjs document sync, and artifact caching
+  redis:
+    image: redis:7-alpine
+    container_name: fasttex-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    # Note: Ports are commented out for production security.
+    # Uncomment for local development access.
+    # ports:
+    #   - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fasttex-network
+
+  # Gateway Service
+  # Handles WebSocket connections, Yjs sync, and REST API
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    container_name: fasttex-gateway
+    restart: unless-stopped
+    environment:
+      RUST_LOG: info
+      GATEWAY_BIND_ADDR: 0.0.0.0:8080
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgres://fasttex:${POSTGRES_PASSWORD:-fasttex_secret}@postgres:5432/fasttex
+      # SECURITY: Change this in production! Generate with: openssl rand -base64 32
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in production}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - fasttex-network
+
+  # Build Orchestrator
+  # Manages compilation jobs and worker distribution
+  orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile.orchestrator
+    container_name: fasttex-orchestrator
+    restart: unless-stopped
+    environment:
+      RUST_LOG: info
+      ORCHESTRATOR_BIND_ADDR: 0.0.0.0:8081
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgres://fasttex:${POSTGRES_PASSWORD:-fasttex_secret}@postgres:5432/fasttex
+      MAX_CONCURRENT_JOBS: 16
+      WORKER_TIMEOUT_SECS: 300
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - fasttex-network
+
+  # Worker Service (3 replicas for parallel compilation)
+  # Each worker can compile LaTeX documents independently
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: unless-stopped
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    environment:
+      RUST_LOG: info
+      REDIS_URL: redis://redis:6379
+      ORCHESTRATOR_URL: http://orchestrator:8081
+      WORKER_WORK_DIR: /tmp/fasttex-work
+    volumes:
+      - worker_data:/tmp/fasttex-work
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - fasttex-network
+
+  # Frontend (Development)
+  # React development server - not for production use
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fasttex-frontend
+    restart: unless-stopped
+    # Note: VITE_API_URL is not needed when using nginx proxy
+    # The frontend uses relative URLs that nginx proxies to the gateway
+    ports:
+      - "5173:5173"
+    depends_on:
+      - gateway
+    profiles:
+      - development
+    networks:
+      - fasttex-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  worker_data:
+    driver: local
+
+networks:
+  fasttex-network:
+    driver: bridge
