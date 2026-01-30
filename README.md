@@ -96,7 +96,6 @@ git clone https://github.com/fasttex/fasttex.git
 cd fasttex
 
 # Build the Rust components
-cd fasttex
 cargo build
 
 # Run tests
@@ -107,6 +106,26 @@ cd frontend
 npm install
 npm run dev
 ```
+
+### Running Backend Services
+
+FastTeX is a Rust workspace with multiple services. Run each in a separate terminal:
+
+```bash
+# Terminal 1: Start the Gateway (WebSocket + HTTP API on port 8080)
+cargo run --bin fasttex-gateway
+
+# Terminal 2: Start the Orchestrator (job scheduling)
+cargo run --bin fasttex-orchestrator
+
+# Terminal 3: Start the Worker (LaTeX compilation)
+cargo run --bin fasttex-worker
+```
+
+For development, the gateway is the primary service that handles frontend connections:
+- **Gateway** (`fasttex-gateway`): HTTP API + WebSocket server for real-time collaboration
+- **Orchestrator** (`fasttex-orchestrator`): Distributes compilation jobs across workers
+- **Worker** (`fasttex-worker`): Executes LaTeX compilation (Tectonic-based)
 
 ## How It Works
 
@@ -167,20 +186,20 @@ Edit chapter2.tex
 Comprehensive documentation is available:
 
 ### Getting Started
-- **[Getting Started Guide](fasttex/docs/GETTING_STARTED.md)** - Installation, prerequisites, quick start
-- **[Frontend Setup](fasttex/frontend/README.md)** - Frontend development guide
-- **[Infrastructure Setup](fasttex/infra/README.md)** - Firecracker worker configuration
+- **[Getting Started Guide](docs/GETTING_STARTED.md)** - Installation, prerequisites, quick start
+- **[Frontend Setup](frontend/README.md)** - Frontend development guide
+- **[Infrastructure Setup](infra/README.md)** - Firecracker worker configuration
 
 ### Architecture & Design
-- **[Architecture Overview](fasttex/docs/ARCHITECTURE.md)** - System design, components, data flow
-- **[API Reference](fasttex/docs/API.md)** - REST API, WebSocket protocol, SDK examples
+- **[Architecture Overview](docs/ARCHITECTURE.md)** - System design, components, data flow
+- **[API Reference](docs/API.md)** - REST API, WebSocket protocol, SDK examples
 
 ### Operations
-- **[Deployment Guide](fasttex/docs/DEPLOYMENT.md)** - Single server, cluster, Kubernetes, cloud
-- **[Security Guide](fasttex/docs/SECURITY.md)** - Authentication, sandboxing, hardening
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Single server, cluster, Kubernetes, cloud
+- **[Security Guide](docs/SECURITY.md)** - Authentication, sandboxing, hardening
 
 ### Contributing
-- **[Contributing Guide](fasttex/docs/CONTRIBUTING.md)** - Code style, testing, PR process
+- **[Contributing Guide](docs/CONTRIBUTING.md)** - Code style, testing, PR process
 
 ## Why FastTeX Beats Overleaf
 
@@ -209,7 +228,7 @@ Comprehensive documentation is available:
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](fasttex/docs/CONTRIBUTING.md) for guidelines.
+We welcome contributions! Please see [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
 
 ### Development Setup
 
