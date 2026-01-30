@@ -265,10 +265,6 @@
   white-space: nowrap;
 }
 
-.folder-children {
-  /* Children are indented via inline style */
-}
-
 /* Panel Headers */
 .panel-header {
   display: flex;

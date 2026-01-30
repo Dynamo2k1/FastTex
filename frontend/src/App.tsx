@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { 
   FileText, 
@@ -27,6 +27,7 @@ function App() {
   const [compileMessage, setCompileMessage] = useState<string | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+  const successTimeoutRef = useRef<number | null>(null)
 
   const [files, setFiles] = useState<FileItem[]>([
     { name: 'main.tex', type: 'file' },
@@ -50,7 +51,25 @@ function App() {
     },
   ])
 
+  // Cleanup timeout and PDF URL on unmount
+  useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current)
+      }
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl)
+      }
+    }
+  }, [pdfUrl])
+
   const handleCompile = useCallback(async () => {
+    // Clear any existing timeout
+    if (successTimeoutRef.current) {
+      clearTimeout(successTimeoutRef.current)
+      successTimeoutRef.current = null
+    }
+
     setCompileStatus('compiling')
     setCompileMessage('Compiling document...')
 
@@ -67,7 +86,23 @@ function App() {
       })
 
       if (!response.ok) {
-        throw new Error(`Compilation failed: ${response.statusText}`)
+        // Try to extract error message from response body
+        let errorMessage = `Compilation failed: ${response.statusText}`
+        try {
+          const errorData = await response.json()
+          if (errorData.message || errorData.error) {
+            errorMessage = errorData.message || errorData.error
+          }
+        } catch {
+          // Response wasn't JSON, use default error message
+        }
+        throw new Error(errorMessage)
+      }
+
+      // Verify response is a PDF
+      const contentType = response.headers.get('Content-Type')
+      if (contentType && !contentType.includes('application/pdf')) {
+        throw new Error('Server did not return a PDF file')
       }
 
       const blob = await response.blob()
@@ -83,16 +118,19 @@ function App() {
       setCompileMessage('Compiled successfully!')
       
       // Clear success message after 3 seconds
-      setTimeout(() => {
-        if (compileStatus === 'success') {
-          setCompileMessage(null)
-        }
+      successTimeoutRef.current = window.setTimeout(() => {
+        setCompileMessage(null)
       }, 3000)
     } catch (error) {
+      // Revoke previous URL on error
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl)
+      }
+      setPdfUrl(null)
       setCompileStatus('error')
       setCompileMessage(error instanceof Error ? error.message : 'Compilation failed')
     }
-  }, [apiUrl, projectId, filePath, pdfUrl, compileStatus])
+  }, [apiUrl, projectId, filePath, pdfUrl])
 
   const toggleFolder = (folderName: string) => {
     setFiles(prevFiles => 
@@ -104,36 +142,55 @@ function App() {
     )
   }
 
-  const renderFileTree = (items: FileItem[], depth = 0) => {
-    return items.map(item => (
-      <div key={item.name}>
-        <div 
-          className={`file-item ${item.type === 'file' && item.name === filePath ? 'active' : ''}`}
-          style={{ paddingLeft: `${12 + depth * 16}px` }}
-          onClick={() => {
-            if (item.type === 'folder') {
-              toggleFolder(item.name)
-            } else {
-              setFilePath(item.name)
-            }
-          }}
-        >
-          <span className="file-icon">
-            {item.type === 'folder' ? (
-              item.isOpen ? <FolderOpen size={16} /> : <FolderClosed size={16} />
-            ) : (
-              <FileText size={16} />
-            )}
-          </span>
-          <span className="file-name">{item.name}</span>
-        </div>
-        {item.type === 'folder' && item.isOpen && item.children && (
-          <div className="folder-children">
-            {renderFileTree(item.children, depth + 1)}
+  const handleFileClick = useCallback((item: FileItem, parentPath: string = '') => {
+    if (item.type === 'folder') {
+      toggleFolder(item.name)
+    } else {
+      const fullPath = parentPath ? `${parentPath}/${item.name}` : item.name
+      setFilePath(fullPath)
+    }
+  }, [])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent, item: FileItem, parentPath: string = '') => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      handleFileClick(item, parentPath)
+    }
+  }, [handleFileClick])
+
+  const renderFileTree = (items: FileItem[], depth = 0, parentPath = '') => {
+    return items.map(item => {
+      const fullPath = parentPath ? `${parentPath}/${item.name}` : item.name
+      const isActive = item.type === 'file' && fullPath === filePath
+      
+      return (
+        <div key={fullPath}>
+          <div 
+            className={`file-item ${isActive ? 'active' : ''}`}
+            style={{ paddingLeft: `${12 + depth * 16}px` }}
+            onClick={() => handleFileClick(item, parentPath)}
+            onKeyDown={(e) => handleKeyDown(e, item, parentPath)}
+            role="button"
+            tabIndex={0}
+            aria-expanded={item.type === 'folder' ? item.isOpen : undefined}
+          >
+            <span className="file-icon">
+              {item.type === 'folder' ? (
+                item.isOpen ? <FolderOpen size={16} /> : <FolderClosed size={16} />
+              ) : (
+                <FileText size={16} />
+              )}
+            </span>
+            <span className="file-name">{item.name}</span>
           </div>
-        )}
-      </div>
-    ))
+          {item.type === 'folder' && item.isOpen && item.children && (
+            <div className="folder-children">
+              {renderFileTree(item.children, depth + 1, fullPath)}
+            </div>
+          )}
+        </div>
+      )
+    })
   }
 
   const getStatusIcon = () => {
@@ -191,7 +248,7 @@ function App() {
               <div className="file-tree-header">
                 <h3>Project Files</h3>
               </div>
-              <div className="file-list">
+              <div className="file-list" role="tree">
                 {renderFileTree(files)}
               </div>
             </aside>
@@ -229,6 +286,7 @@ function App() {
                     src={pdfUrl} 
                     className="pdf-viewer"
                     title="PDF Preview"
+                    sandbox="allow-same-origin allow-scripts"
                   />
                 ) : (
                   <div className="preview-placeholder">
