@@ -1,0 +1,59 @@
+# FastTeX Orchestrator Dockerfile
+# Multi-stage build for minimal production image
+
+# Build stage
+FROM rust:1.75-bookworm as builder
+
+WORKDIR /app
+
+# Copy Cargo files first for dependency caching
+COPY Cargo.toml Cargo.lock ./
+COPY gateway/Cargo.toml ./gateway/
+COPY worker/Cargo.toml ./worker/
+COPY orchestrator/Cargo.toml ./orchestrator/
+
+# Create dummy source files for dependency compilation
+RUN mkdir -p gateway/src worker/src orchestrator/src && \
+    echo "fn main() {}" > gateway/src/main.rs && \
+    echo "fn main() {}" > worker/src/main.rs && \
+    echo "fn main() {}" > orchestrator/src/main.rs && \
+    touch gateway/src/lib.rs worker/src/lib.rs orchestrator/src/lib.rs
+
+# Build dependencies only
+RUN cargo build --release --package fasttex-orchestrator 2>/dev/null || true
+
+# Copy actual source code
+COPY gateway ./gateway
+COPY worker ./worker
+COPY orchestrator ./orchestrator
+
+# Touch source files to trigger rebuild
+RUN touch orchestrator/src/main.rs orchestrator/src/lib.rs
+
+# Build the release binary
+RUN cargo build --release --package fasttex-orchestrator
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy the binary from builder
+COPY --from=builder /app/target/release/fasttex-orchestrator /usr/local/bin/
+
+# Create non-root user
+RUN useradd -r -s /bin/false fasttex
+
+USER fasttex
+
+EXPOSE 8081
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD curl -f http://localhost:8081/health || exit 1
+
+ENTRYPOINT ["fasttex-orchestrator"]
